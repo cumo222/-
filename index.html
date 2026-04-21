@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>融合跑酷球 v0.1.0</title>
+<title>三轨节奏跑酷 v0.2.0</title>
 <style>
   body {
     margin: 0;
     overflow: hidden;
-    background: #0f0f1a;
+    background: #0b0b12;
     touch-action: none;
     font-family: Arial;
   }
@@ -22,11 +22,11 @@
     color: white;
     font-size: 14px;
   }
-  #version {
+  #ver {
     position: fixed;
     bottom: 10px;
     right: 10px;
-    color: #aaa;
+    color: #888;
     font-size: 12px;
   }
 </style>
@@ -34,7 +34,168 @@
 <body>
 
 <div id="ui">分数: <span id="score">0</span></div>
-<div id="version">v0.1.0</div>
+<div id="ver">v0.2.0（三轨版）</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// 🛤️ 三条轨道
+const lanes = [
+  canvas.width * 0.3,
+  canvas.width * 0.5,
+  canvas.width * 0.7
+];
+
+let laneIndex = 1;
+
+// 🧍 玩家
+let player = {
+  x: lanes[laneIndex],
+  y: canvas.height * 0.75,
+  r: 16,
+  vy: 0,
+  jumping: false
+};
+
+// 🧱 方块
+let blocks = [];
+let speed = 4;
+let score = 0;
+let gameOver = false;
+
+// 生成方块（固定轨道）
+function createBlock(x) {
+  const lane = Math.floor(Math.random() * 3);
+  blocks.push({
+    x: x,
+    y: canvas.height * 0.8,
+    w: 80,
+    h: 20,
+    lane: lane,
+    passed: false
+  });
+}
+
+// 初始方块
+for (let i = 0; i < 8; i++) {
+  createBlock(i * 200);
+}
+
+// 🎮 控制（左右切轨 + 跳）
+function control(e) {
+  if (gameOver) {
+    location.reload();
+    return;
+  }
+
+  // 左右点击切轨
+  if (e.touches) {
+    let x = e.touches[0].clientX;
+    if (x < canvas.width / 2) {
+      laneIndex = Math.max(0, laneIndex - 1);
+    } else {
+      laneIndex = Math.min(2, laneIndex + 1);
+    }
+  } else {
+    laneIndex = (laneIndex + 1) % 3;
+  }
+
+  player.x = lanes[laneIndex];
+}
+
+window.addEventListener("touchstart", control);
+window.addEventListener("mousedown", control);
+
+// 更新
+function update() {
+  if (gameOver) return;
+
+  // 玩家位置锁定轨道
+  player.x = lanes[laneIndex];
+
+  // 方块移动
+  for (let b of blocks) {
+    b.x -= speed;
+
+    // 加分
+    if (!b.passed && b.x + b.w < player.x) {
+      score++;
+      b.passed = true;
+      document.getElementById("score").innerText = score;
+    }
+
+    // 碰撞检测（自动落在方块上）
+    if (
+      b.lane === laneIndex &&
+      player.y + player.r >= b.y &&
+      player.y + player.r <= b.y + 10 &&
+      b.x < player.x &&
+      b.x + b.w > player.x
+    ) {
+      player.y = b.y - player.r;
+      player.jumping = false;
+      player.vy = 0;
+    }
+  }
+
+  // 生成新方块
+  if (blocks[blocks.length - 1].x < canvas.width) {
+    createBlock(canvas.width + Math.random() * 200);
+  }
+
+  // 掉落
+  if (player.y > canvas.height) {
+    gameOver = true;
+    alert("失败！分数：" + score);
+  }
+}
+
+// 绘制
+function draw() {
+  ctx.fillStyle = "#0b0b12";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 轨道线
+  ctx.strokeStyle = "#222";
+  for (let x of lanes) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+
+  // 方块
+  ctx.fillStyle = "#4caf50";
+  for (let b of blocks) {
+    if (b.lane === 0) ctx.fillRect(lanes[0] - 40, b.x, b.w, b.h);
+    if (b.lane === 1) ctx.fillRect(lanes[1] - 40, b.x, b.w, b.h);
+    if (b.lane === 2) ctx.fillRect(lanes[2] - 40, b.x, b.w, b.h);
+  }
+
+  // 玩家球
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// 游戏循环
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html><div id="version">v0.1.0</div>
 
 <canvas id="game"></canvas>
 
