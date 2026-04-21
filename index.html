@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>融合跑酷球 v0.1.0</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #0f0f1a;
+    touch-action: none;
+    font-family: Arial;
+  }
+  canvas {
+    display: block;
+  }
+  #ui {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-size: 14px;
+  }
+  #version {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    color: #aaa;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">分数: <span id="score">0</span></div>
+<div id="version">v0.1.0</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// 玩家
+let player = {
+  x: canvas.width * 0.2,
+  y: canvas.height * 0.5,
+  r: 15,
+  vy: 0,
+  gravity: 0.6,
+  jump: -12
+};
+
+let platforms = [];
+let score = 0;
+let gameOver = false;
+
+// 生成平台
+function createPlatform(x) {
+  let w = 120;
+  let h = 20;
+  let y = Math.random() * (canvas.height * 0.6) + canvas.height * 0.2;
+  platforms.push({x, y, w, h});
+}
+
+// 初始化平台
+for (let i = 0; i < 6; i++) {
+  createPlatform(i * 200);
+}
+
+// 点击跳跃
+function jump() {
+  if (gameOver) {
+    location.reload();
+    return;
+  }
+  player.vy = player.jump;
+}
+
+window.addEventListener("touchstart", jump);
+window.addEventListener("mousedown", jump);
+
+// 更新
+function update() {
+  if (gameOver) return;
+
+  player.vy += player.gravity;
+  player.y += player.vy;
+
+  platforms.forEach(p => {
+    p.x -= 3;
+
+    // 加分
+    if (p.x + p.w < player.x && !p.passed) {
+      score++;
+      p.passed = true;
+      document.getElementById("score").innerText = score;
+    }
+
+    // 碰撞
+    if (
+      player.x > p.x &&
+      player.x < p.x + p.w &&
+      player.y + player.r > p.y &&
+      player.y + player.r < p.y + p.h + 10 &&
+      player.vy > 0
+    ) {
+      player.y = p.y - player.r;
+      player.vy = 0;
+    }
+  });
+
+  // 生成新平台
+  if (platforms[platforms.length - 1].x < canvas.width) {
+    createPlatform(canvas.width + Math.random() * 200);
+  }
+
+  // 掉落
+  if (player.y > canvas.height) {
+    gameOver = true;
+    setTimeout(() => {
+      alert("游戏结束！分数：" + score);
+    }, 100);
+  }
+}
+
+// 绘制
+function draw() {
+  ctx.fillStyle = "#0f0f1a";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 平台
+  ctx.fillStyle = "#4caf50";
+  platforms.forEach(p => {
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+  });
+
+  // 玩家
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// 循环
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
