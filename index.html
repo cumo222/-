@@ -3,38 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>三轨节奏跑酷 v0.2.0</title>
+<title>第一人称跑酷 v0.3.0</title>
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #0b0b12;
-    touch-action: none;
-    font-family: Arial;
-  }
-  canvas {
-    display: block;
-  }
-  #ui {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    color: white;
-    font-size: 14px;
-  }
-  #ver {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    color: #888;
-    font-size: 12px;
-  }
+body {
+  margin:0;
+  overflow:hidden;
+  background:#05060a;
+  touch-action:none;
+  font-family:Arial;
+}
+
+canvas {
+  display:block;
+}
+
+#ui {
+  position:fixed;
+  top:10px;
+  left:10px;
+  color:white;
+}
+
+#ver {
+  position:fixed;
+  bottom:10px;
+  right:10px;
+  color:#777;
+  font-size:12px;
+}
 </style>
 </head>
 <body>
 
 <div id="ui">分数: <span id="score">0</span></div>
-<div id="ver">v0.2.0（三轨版）</div>
+<div id="ver">v0.3.0 第一人称</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const c = document.getElementById("c");
+const ctx = c.getContext("2d");
+
+c.width = innerWidth;
+c.height = innerHeight;
+
+// 🎮 玩家（固定在视角）
+let player = {
+  y: 0,
+  vy: 0,
+  onGround: true
+};
+
+let gravity = 0.8;
+let jumpPower = -14;
+
+// 🧱 世界方块（向玩家移动）
+let blocks = [];
+let speed = 6;
+let score = 0;
+let gameOver = false;
+
+// 生成方块（远处）
+function spawn(x) {
+  blocks.push({
+    z: x,        // 距离（越小越近）
+    lane: Math.floor(Math.random() * 3),
+    passed:false
+  });
+}
+
+// 初始
+for(let i=0;i<12;i++){
+  spawn(i*120);
+}
+
+// 🟢 点击跳
+function jump(){
+  if(gameOver){
+    location.reload();
+    return;
+  }
+
+  if(player.onGround){
+    player.vy = jumpPower;
+    player.onGround = false;
+  }
+}
+
+addEventListener("touchstart", jump);
+addEventListener("mousedown", jump);
+
+// 📦 更新
+function update(){
+  if(gameOver) return;
+
+  // 重力
+  player.vy += gravity;
+  player.y += player.vy;
+
+  if(player.y >= 0){
+    player.y = 0;
+    player.vy = 0;
+    player.onGround = true;
+  }
+
+  // 世界移动（关键）
+  for(let b of blocks){
+    b.z -= speed;
+
+    // 加分
+    if(!b.passed && b.z < 0){
+      score++;
+      document.getElementById("score").innerText = score;
+      b.passed = true;
+    }
+
+    // 碰撞（近距离判断）
+    if(b.z < 40 && b.z > -20){
+      if(player.y > -20){
+        gameOver = true;
+        alert("失败！分数：" + score);
+      }
+    }
+  }
+
+  // 新方块
+  if(blocks[blocks.length-1].z < 600){
+    spawn(800 + Math.random()*300);
+  }
+}
+
+// 🎨 绘制（伪3D核心）
+function draw(){
+  ctx.fillStyle="#05060a";
+  ctx.fillRect(0,0,c.width,c.height);
+
+  // 地面
+  ctx.fillStyle="#111";
+  ctx.fillRect(0,c.height*0.75,c.width,c.height);
+
+  // 🧱 方块（透视效果）
+  for(let b of blocks){
+
+    let scale = 200 / (b.z + 200);
+    let size = 80 * scale;
+
+    let x = c.width/2 + (b.lane-1)*120*scale;
+    let y = c.height*0.75 - size;
+
+    ctx.fillStyle="#4caf50";
+    ctx.fillRect(x-size/2, y, size, size);
+  }
+
+  // 🧍 球（第一人称固定）
+  ctx.fillStyle="#fff";
+  ctx.beginPath();
+  ctx.arc(c.width/2, c.height*0.75 + player.y, 18, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// 🔁 循环
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html><div id="ver">v0.2.0（三轨版）</div>
 
 <canvas id="game"></canvas>
 
